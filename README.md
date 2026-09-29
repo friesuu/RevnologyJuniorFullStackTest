@@ -1,18 +1,15 @@
 # Task Board
-
 A simple task board: React frontend, NestJS API and PostgreSQL database.
 
-**Work in progress.** The tag `deadline-submission` marks my submitted version.
+**Work in progress.**
 
 ## Status
-
 **Done:** backend and frontend connected, board showing tasks grouped by status, PostgreSQL connected with a `tasks` table.
 
 **To do:** read tasks from the database, create/edit/delete, validation, overdue highlight, tests.
 
 ## How to run
-
-You need Node.js 20+ and PostgreSQL.
+Needs Node.js 20+ and PostgreSQL.
 
 1. Create the database (e.g. in pgAdmin's Query Tool):
    ```sql
@@ -34,9 +31,7 @@ You need Node.js 20+ and PostgreSQL.
    Open http://localhost:5173
 
 ## Use of AI tools
-
-I used Claude as a tutor to explain concepts, review my code and help with setup commands. It also drafted this README. I wrote the application code myself.
+I used Claude as a tutor to explain concepts, review my code and help with setup commands. I wrote the application code myself with help from built in AI in google search.
 
 ## Notes
-
 I restarted the git history early on after accidentally committing `node_modules`, then added a `.gitignore`.
