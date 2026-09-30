@@ -201,3 +201,73 @@
   border-radius: 8px;
   min-height: 300px;
 }
+
+.description
+{
+  /* background-color: bisque; */
+  padding: 1rem;
+  border-color: brown;
+  border: 2px solid rosybrown;
+  border-radius: 8px;
+  min-height: 300px;
+}
+
+.task-form
+{
+  display: grid;
+  gap: 0.75rem;
+  max-width: 400px;
+  margin-bottom: 1.5rem;
+  background-color: bisque;
+  padding: 1rem;
+  border: 2px solid rosybrown;
+  border-radius: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 1rem;
+  border-color: brown;
+  border: 2px solid rosybrown;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.task-card {
+  background-color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.task-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.error-message {
+  color: firebrick;
+}
+
+.main
+{
+  background-color: whitesmoke;
+}
+
+.task-form button
+{
+  background-color: burlywood;
+  padding: 0.5rem;
+  border-color: brown;
+  border: 2px solid rosybrown;
+  border-radius: 8px;
+  font: inherit;
+}
