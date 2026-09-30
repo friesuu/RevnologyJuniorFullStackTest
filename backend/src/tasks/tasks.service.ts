@@ -1,42 +1,23 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Task } from './task.entity';
 
-export interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  status: 'todo' | 'in_progress' | 'done';
-  dueDate: string | null;
-  createdAt: string;
-}
+
 
 @Injectable()
-export class TasksService {
-  findAll(): Task[] {
-    return [
-      {
-        id: 1,
-        title: 'test',
-        description: 'test',
-        status: 'todo',
-        dueDate: '2026-08-01',
-        createdAt: '2026-09-29T10:00:00.000Z',
-      },
-      {
-        id: 2,
-        title: 'test2',
-        description: 'test',
-        status: 'in_progress',
-        dueDate: '2026-09-01',
-        createdAt: '2026-09-28T10:00:00.000Z',
-      },
-      {
-        id: 3,
-        title: 'DoneTest',
-        description: 'test',
-        status: 'done',
-        dueDate: '2026-09-28',
-        createdAt: '2026-09-28T10:00:00.000Z',
-      },
-    ];
+export class TasksService 
+{
+    constructor(
+        @InjectRepository(Task) 
+    private readonly tasksRepository: Repository<Task>,){}
+
+
+  findAll(): Promise<Task[]> 
+  {
+    return this.tasksRepository.find({order: {
+        createdAt: 'ASC', id: 'ASC' // ORDER BY in SQL, 'ASC' means in ascending order
+        },
+    });
   }
 }
