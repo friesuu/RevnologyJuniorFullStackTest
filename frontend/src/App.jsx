@@ -1,8 +1,9 @@
 import './App.css';
 import { useState, useEffect } from 'react';
-import { getTasks, createTask } from './api';
+import { getTasks, createTask, updateTask } from './api';
 import Column from './components/Column';
 import TaskForm from './components/TaskFrom';
+import { STATUSES } from './statuses';
 // import { createTask } from './api';
 
 function App()
@@ -19,6 +20,16 @@ function App()
     setTasks((prev) => [...prev, created]);
   };
 
+  const handleStatusChange = async (id, status) => {
+    try{
+      const updated = await updateTask(id, { status })
+      setTasks((prev) => prev.map((b) => (b.id === id? updated : b)));
+    }
+    catch(err){
+      setError(err.message)
+    }
+  };
+
   return(
     <main className="main">
       <h1>
@@ -30,7 +41,15 @@ function App()
       {error && <p className="error-message">{error}</p>}
 
       <div className="board">
-        <Column 
+        {STATUSES.map((s) => (
+          <Column 
+          key={s.value}
+          title={s.label}
+          tasks={tasks.filter((t) => t.status === s.value)}
+          onStatusChange={handleStatusChange}
+          />
+        ))}
+        {/* <Column 
         title="To do" 
         status="todo"
         tasks={tasks.filter((t) => t.status === 'todo')}
@@ -44,10 +63,9 @@ function App()
         title="Done" 
         status="done"
         tasks={tasks.filter((t) => t.status === 'done')}
-        />
+        /> */}
       </div>
     </main>
   );
 }
-
 export default App;
