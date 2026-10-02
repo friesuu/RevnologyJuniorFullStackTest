@@ -116,5 +116,78 @@ describe('Tasks API (e2e)', () => {
         'Second',
       ]);
     });
-  });
+    });
+
+    describe('PATCH /tasks/:id', () => {
+        it('changes the status and keeps the other fields', async () => {
+            const created = await request(app.getHttpServer())
+            .post('/tasks')
+            .send({ title: 'Write report' })
+            .expect(201);
+
+            const id = created.body.id;
+
+            const res = await request(app.getHttpServer())
+            .patch(`/tasks/${id}`)
+            .send({ status: 'in_progress' })
+            .expect(200);
+
+            expect(res.body.status).toBe('in_progress');
+            expect(res.body.title).toBe('Write report');
+        });
+
+        it('rejects an unknown status', async () => {
+            const created = await request(app.getHttpServer())
+            .post('/tasks')
+            .send({ title: 'Write report' })
+            .expect(201);
+
+            const id = created.body.id;
+
+            await request(app.getHttpServer())
+            .patch(`/tasks/${id}`)
+            .send({ status: 'doing' })
+            .expect(400);
+        });
+
+        it('returns 404 for a task that doesnt exist', async () => {
+            const created = await request(app.getHttpServer())
+            .post('/tasks')
+            .send({ title: 'Write report' })
+            .expect(201);
+
+            const id = created.body.id;
+
+            const res = await request(app.getHttpServer())
+            .patch(`/tasks/999999`)
+            .expect(404);
+
+            expect(res.body.message).toContain('Task 999999 not found');
+        });
+
+        it('rejects a non-numeric id', async () => {
+            await request(app.getHttpServer())
+            .post('/tasks')
+            .send({ title: 'Write report' })
+            .expect(201);
+
+            const res = await request(app.getHttpServer())
+            .patch(`/tasks/abc`)
+            .expect(400);
+        });
+
+        it('rejects a null title', async () => {
+            const created = await request(app.getHttpServer())
+            .post('/tasks')
+            .send({ title: 'Write report' })
+            .expect(201);
+
+            const id = created.body.id;
+
+            await request(app.getHttpServer())
+            .patch(`/tasks/${id}`)
+            .send({ title: null })
+            .expect(400);
+        });
+    });
 });
