@@ -1,10 +1,17 @@
-import { IsString, IsNotEmpty, MaxLength, IsOptional, IsEnum, Matches, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  IsOptional,
+  IsEnum,
+  Matches,
+  IsDateString,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
-import { TaskStatus } from './tasks-status.enum'
+import { TaskStatus } from './tasks-status.enum';
 
-export class CreateTaskDto
-{
-    @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+export class CreateTaskDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
