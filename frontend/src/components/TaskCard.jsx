@@ -1,7 +1,26 @@
 import { STATUSES } from "../statuses";
+import { useState } from "react";
+import TaskEditForm from "./TaskEditForm";
 
-function TaskCard({ task, onStatusChange, onDelete})
+function TaskCard({ task, onStatusChange, onDelete, onEdit})
 {
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleSave = async (changes) => {
+        await onEdit(task.id, changes)
+
+        setIsEditing(false);
+    }
+
+    if(isEditing)
+    {
+        return(
+            <div className="task-card">
+                <TaskEditForm task={task} onSave={handleSave} onCancel={() => setIsEditing(false)} />
+            </div>
+        )
+    }
+
     return(
         <div className="task-card">
             <h3>
@@ -26,6 +45,10 @@ function TaskCard({ task, onStatusChange, onDelete})
             }}
             >
                 Delete
+            </button>
+
+            <button className="edit-button" onClick={() => setIsEditing(true)}>
+                Edit
             </button>
         </div>
     );

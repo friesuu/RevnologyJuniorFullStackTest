@@ -40,6 +40,12 @@ function App()
     }
   }
 
+  const handleEdit = async (id, changes) => {
+    const updated = await updateTask(id, changes);
+
+    setTasks((prev) => prev.map((b) => (b.id === id? updated : b)));
+  }
+
   return(
     <main className="main">
       <h1>
@@ -58,6 +64,7 @@ function App()
           tasks={tasks.filter((t) => t.status === s.value)}
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}
+          onEdit={handleEdit}
           />
         ))}
         {/* <Column 

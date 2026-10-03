@@ -1,6 +1,6 @@
 import TaskCard from './TaskCard.jsx';
 
-function Column({title, tasks, onStatusChange, onDelete})
+function Column({title, tasks, onStatusChange, onDelete, onEdit})
 {
     return(
         <section className="column">
@@ -12,7 +12,7 @@ function Column({title, tasks, onStatusChange, onDelete})
                 <p className="empty-message">No tasks</p>
             ) : (
                 tasks.map((task) => (
-                <TaskCard key={task.id} task={task} onStatusChange={onStatusChange} onDelete={onDelete}>
+                <TaskCard key={task.id} task={task} onStatusChange={onStatusChange} onDelete={onDelete} onEdit={onEdit}>
                     {/* <h3>{task.title}</h3> */}
                 </TaskCard>
                 ))
