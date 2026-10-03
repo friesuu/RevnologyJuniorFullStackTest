@@ -1,6 +1,6 @@
 import './App.css';
 import { useState, useEffect } from 'react';
-import { getTasks, createTask, updateTask } from './api';
+import { getTasks, createTask, updateTask, deleteTask } from './api';
 import Column from './components/Column';
 import TaskForm from './components/TaskFrom';
 import { STATUSES } from './statuses';
@@ -30,6 +30,16 @@ function App()
     }
   };
 
+  const handleDelete = async (id) => {
+    try{
+      await deleteTask(id);
+      setTasks((prev) => prev.filter((b) => b.id !== id));
+    }
+    catch(err){
+      setError(err.message)
+    }
+  }
+
   return(
     <main className="main">
       <h1>
@@ -47,6 +57,7 @@ function App()
           title={s.label}
           tasks={tasks.filter((t) => t.status === s.value)}
           onStatusChange={handleStatusChange}
+          onDelete={handleDelete}
           />
         ))}
         {/* <Column 

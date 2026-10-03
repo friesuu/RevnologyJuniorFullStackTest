@@ -1,6 +1,6 @@
 import { STATUSES } from "../statuses";
 
-function TaskCard({ task, onStatusChange})
+function TaskCard({ task, onStatusChange, onDelete})
 {
     return(
         <div className="task-card">
@@ -18,6 +18,15 @@ function TaskCard({ task, onStatusChange})
                     </option>
                 ))}
             </select>
+
+            <button className="delete-button" onClick={() => {
+                if(window.confirm(`Delete "${task.title}"?`)){
+                    onDelete(task.id)
+                }
+            }}
+            >
+                Delete
+            </button>
         </div>
     );
 }

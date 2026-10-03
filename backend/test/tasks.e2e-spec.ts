@@ -190,4 +190,36 @@ describe('Tasks API (e2e)', () => {
             .expect(400);
         });
     });
+
+    describe('DELETE /tasks/:id', () => {
+        it('deletes a task', async () => {
+            const created = await request(app.getHttpServer())
+            .post('/tasks')
+            .send({ title: 'Write report' })
+            .expect(201);
+
+            const id = created.body.id;
+            await request(app.getHttpServer())
+            .delete(`/tasks/${id}`)
+            .expect(204);
+
+            const res = await request(app.getHttpServer())
+            .get('/tasks')
+            .expect(200);
+
+            expect(res.body).toHaveLength(0);
+        })
+
+        it('returns 404 for a task that doesnt exist', async () => {
+            await request(app.getHttpServer())
+            .delete(`/tasks/999999`)
+            .expect(404);
+        })
+
+        it('rejects a non-numeric id', async () => {
+            await request(app.getHttpServer())
+            .delete(`/tasks/abc`)
+            .expect(400);
+        })
+    });
 });

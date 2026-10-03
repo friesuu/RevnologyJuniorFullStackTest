@@ -42,4 +42,14 @@ export class TasksService {
     this.tasksRepository.merge(task, dto);
     return this.tasksRepository.save(task);
   }
+
+  async remove(id: number): Promise<void>
+  {
+    const result = await this.tasksRepository.delete(id);
+
+    if( result.affected === 0)
+    {
+      throw new NotFoundException(`Task ${id} not found`);
+    }
+  }
 }

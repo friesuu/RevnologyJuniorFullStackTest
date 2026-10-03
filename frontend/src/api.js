@@ -56,3 +56,19 @@ export async function updateTask(id, changes)
 
     return response.json();
 }
+
+export async function deleteTask(id)
+{
+    const response = await fetch(`${API_URL}/${id}`, {
+    
+        method: 'DELETE'
+    });
+
+    if(!response.ok)
+    {
+        const  errorData = await response.json();
+        const message = Array.isArray(errorData.message) ? errorData.message.join(', '): errorData.message || 'Failed to delete task';
+
+        throw new Error(message);
+    }
+}
