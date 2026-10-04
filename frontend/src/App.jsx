@@ -11,6 +11,7 @@ function App()
   const [tasks, setTasks] = useState([]);
   // const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {getTasks().then((data) => {setTasks(data)}).catch((err) => {setError(err.message)});
   }, []);
@@ -18,6 +19,7 @@ function App()
   const handleCreate = async (data) => {
     const created = await createTask(data);
     setTasks((prev) => [...prev, created]);
+    setIsModalOpen(false);
   };
 
   const handleStatusChange = async (id, status) => {
@@ -47,14 +49,38 @@ function App()
   }
 
   return(
-    <main className="main">
-      <h1>
-        Task Board
-      </h1>
-
-      <TaskForm onCreate={handleCreate} />
+    <main className="container">
+      <header className="header">
+        <h1 className='header-title'>
+          Task Board
+        </h1>
+        <button className="add-task-btn" onClick={() => setIsModalOpen(true)}>
+          + Add Task
+        </button>
+      </header>
 
       {error && <p className="error-message">{error}</p>}
+
+      {/* <TaskForm onCreate={handleCreate} /> */}
+
+      {isModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header">
+              <h2>Add New Task</h2>
+              <button 
+                className="close-btn" 
+                onClick={() => setIsModalOpen(false)}
+              >
+                ✕
+              </button>
+            </header>
+            
+            <TaskForm onCreate={handleCreate} />
+          </div>
+        </div>
+      )}
+
 
       <div className="board">
         {STATUSES.map((s) => (
