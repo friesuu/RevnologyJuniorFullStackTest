@@ -151,12 +151,10 @@ describe('Tasks API (e2e)', () => {
         });
 
         it('returns 404 for a task that doesnt exist', async () => {
-            const created = await request(app.getHttpServer())
+            await request(app.getHttpServer())
             .post('/tasks')
             .send({ title: 'Write report' })
             .expect(201);
-
-            const id = created.body.id;
 
             const res = await request(app.getHttpServer())
             .patch(`/tasks/999999`)
@@ -171,7 +169,7 @@ describe('Tasks API (e2e)', () => {
             .send({ title: 'Write report' })
             .expect(201);
 
-            const res = await request(app.getHttpServer())
+            await request(app.getHttpServer())
             .patch(`/tasks/abc`)
             .expect(400);
         });

@@ -2,7 +2,6 @@ const API_URL = 'http://localhost:3000/tasks';
 
 export async function getTasks()
 {
-    // const response = await fetch(`${API_URL}/tasks`);
     const response = await fetch(API_URL);
     if(response.ok)
     {

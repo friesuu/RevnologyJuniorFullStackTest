@@ -12,9 +12,7 @@ function Column({title, tasks, onStatusChange, onDelete, onEdit})
                 <p className="empty-message">No tasks</p>
             ) : (
                 tasks.map((task) => (
-                <TaskCard key={task.id} task={task} onStatusChange={onStatusChange} onDelete={onDelete} onEdit={onEdit}>
-                    {/* <h3>{task.title}</h3> */}
-                </TaskCard>
+                <TaskCard key={task.id} task={task} onStatusChange={onStatusChange} onDelete={onDelete} onEdit={onEdit}/>
                 ))
             )}
         </section>

@@ -3,7 +3,6 @@ import { Task } from './task.entity';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './create-task.dto';
 import { UpdateTaskDto } from './update-task.dto';
-import { DECLARATION_TYPE_EXT } from 'ts-jest';
 
 @Controller('tasks')
 export class TasksController {

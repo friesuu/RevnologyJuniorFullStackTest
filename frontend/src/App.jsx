@@ -4,7 +4,6 @@ import { getTasks, createTask, updateTask, deleteTask } from './api';
 import Column from './components/Column';
 import TaskForm from './components/TaskFrom';
 import { STATUSES } from './statuses';
-// import { createTask } from './api';
 
 function App()
 {
