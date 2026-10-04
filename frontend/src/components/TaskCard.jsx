@@ -1,6 +1,7 @@
 import { STATUSES } from "../statuses";
 import { useState } from "react";
 import TaskEditForm from "./TaskEditForm";
+import { isOverdue } from "../dates";
 
 function TaskCard({ task, onStatusChange, onDelete, onEdit})
 {
@@ -22,13 +23,14 @@ function TaskCard({ task, onStatusChange, onDelete, onEdit})
     }
 
     return(
-        <div className="task-card">
+        <div className={isOverdue(task) ? 'task-card overdue' : 'task-card'}>
             <h3>
                 {task.title}
             </h3>
 
             {task.description && <p>{task.description}</p>}
-            {task.dueDate && <p>Due: {task.dueDate}</p>}
+            {task.dueDate && <p>Due: {task.dueDate} : </p>}
+            {isOverdue(task) && <span className="overdue-label">Overdue</span>}
 
             <select value={task.status} onChange={(e) => onStatusChange(task.id, e.target.value)}>
                 {STATUSES.map((c) => (

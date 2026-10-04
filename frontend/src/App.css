@@ -269,5 +269,19 @@
   border-color: brown;
   border: 2px solid rosybrown;
   border-radius: 8px;
-  font: inherit;
+}
+
+.overdue
+{
+  background-color: lightcoral;
+  /* border-color: red; */
+  border: 2px solid red;
+  border-radius: 8px;
+  font:inherit;
+}
+
+.overdue-label
+{
+  color: firebrick;
+  font-weight: bold;
 }
