@@ -1,7 +1,6 @@
-import { PartialType } from "@nestjs/mapped-types";
+import { InputType, PartialType } from "@nestjs/graphql";
 import { CreateTaskDto } from "./create-task.dto";
 
-export class UpdateTaskDto extends PartialType(CreateTaskDto)
-{
+@InputType('UpdateTaskInput')
+export class UpdateTaskDto extends PartialType(CreateTaskDto){}
 
-}

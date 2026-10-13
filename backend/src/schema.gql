@@ -6,8 +6,15 @@ type Task {
   id: Int!
   title: String!
   description: String
+  status: TaskStatus!
   dueDate: String
   createdAt: DateTime!
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
 }
 
 """
@@ -17,4 +24,24 @@ scalar DateTime
 
 type Query {
   tasks: [Task!]!
+}
+
+type Mutation {
+  createTask(input: CreateTaskInput!): Task!
+  updateTask(id: Int!, input: UpdateTaskInput!): Task!
+  deleteTask(id: Int!): Boolean!
+}
+
+input CreateTaskInput {
+  title: String!
+  description: String
+  status: TaskStatus
+  dueDate: String
+}
+
+input UpdateTaskInput {
+  title: String
+  description: String
+  status: TaskStatus
+  dueDate: String
 }
