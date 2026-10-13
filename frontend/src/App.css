@@ -101,6 +101,12 @@
   padding: 1.25rem;
   min-height: 400px;
   box-shadow: var(--shadow-md);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.column.drag-over {
+  background-color: var(--bg-hover);
+  border-color: var(--tokyo-blue);
 }
 
 .column h2,
@@ -220,6 +226,11 @@
 
 .task-card:hover {
   border-color: var(--bg-active);
+}
+
+.task-card.dragging {
+  border-color: var(--tokyo-blue);
+  box-shadow: var(--shadow-md);
 }
 
 .task-card h3 {

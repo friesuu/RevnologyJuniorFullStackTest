@@ -4,6 +4,7 @@ import { getTasks, createTask, updateTask, deleteTask } from './api';
 import Column from './components/Column';
 import TaskForm from './components/TaskFrom';
 import { STATUSES } from './statuses';
+import { DragDropContext} from '@hello-pangea/dnd';
 
 function App()
 {
@@ -21,12 +22,21 @@ function App()
     setIsModalOpen(false);
   };
 
+  // Optimistic: move the card on screen first, then save. If the save fails, put it back.
   const handleStatusChange = async (id, status) => {
+    const previous = tasks.find((t) => t.id === id);
+    if (!previous || previous.status === status) return;
+
+    setError(null);
+    setTasks((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+
     try{
       const updated = await updateTask(id, { status })
       setTasks((prev) => prev.map((b) => (b.id === id? updated : b)));
     }
     catch(err){
+      // Only undo if the card still has the status we set (it wasn't moved again meanwhile)
+      setTasks((prev) => prev.map((b) => (b.id === id && b.status === status ? { ...b, status: previous.status } : b)));
       setError(err.message)
     }
   };
@@ -45,6 +55,13 @@ function App()
     const updated = await updateTask(id, changes);
 
     setTasks((prev) => prev.map((b) => (b.id === id? updated : b)));
+  }
+
+  const handleDragEnd = ({ source, destination, draggableId }) => {
+    if (!destination) return; // dropped outside a column, or Esc pressed
+    if (destination.droppableId === source.droppableId) return; // reordering comes later
+
+    handleStatusChange(Number(draggableId), destination.droppableId);
   }
 
   return(
@@ -80,8 +97,8 @@ function App()
         </div>
       )}
 
-
-      <div className="board">
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="board">
         {STATUSES.map((s) => (
           <Column 
           key={s.value}
@@ -90,7 +107,9 @@ function App()
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}
           onEdit={handleEdit}
+          status={s.value}
           />
+        
         ))}
         {/* <Column 
         title="To do" 
@@ -107,7 +126,9 @@ function App()
         status="done"
         tasks={tasks.filter((t) => t.status === 'done')}
         /> */}
-      </div>
+        </div>
+      </DragDropContext>
+      
     </main>
   );
 }
