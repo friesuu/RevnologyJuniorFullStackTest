@@ -34,6 +34,11 @@ export class Task {
   @Column({ name: 'due_date', type: 'date', nullable: true })
   dueDate: string | null;
 
+  // Order inside its column: 0 = top. Only compared between tasks with the same status.
+  @Field(() => Int)
+  @Column({ type: 'int', default: 0 })
+  position: number;
+
   @Field()
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

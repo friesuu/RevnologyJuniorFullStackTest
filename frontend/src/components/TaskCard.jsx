@@ -1,6 +1,7 @@
 import { STATUSES } from "../statuses";
 import { useState } from "react";
 import TaskEditForm from "./TaskEditForm";
+import TrashIcon from "./TrashIcon";
 import { isOverdue } from "../dates";
 import { Draggable } from "@hello-pangea/dnd";
 
@@ -33,26 +34,33 @@ function TaskCard({ index, task, onStatusChange, onDelete, onEdit})
                         {task.dueDate && <p>Due: {task.dueDate} : </p>}
                         {isOverdue(task) && <span className="overdue-label">Overdue</span>}
 
-                        <select value={task.status} onChange={(e) => onStatusChange(task.id, e.target.value)}>
-                            {STATUSES.map((c) => (
-                                <option key={c.value} value={c.value}>
-                                    {c.label}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="task-actions">
+                            <select value={task.status} onChange={(e) => onStatusChange(task.id, e.target.value)}>
+                                {STATUSES.map((c) => (
+                                    <option key={c.value} value={c.value}>
+                                        {c.label}
+                                    </option>
+                                ))}
+                            </select>
 
-                        <button className="delete-button" onClick={() => {
-                            if(window.confirm(`Delete "${task.title}"?`)){
-                                onDelete(task.id)
-                            }
-                        }}
-                        >
-                            Delete
-                        </button>
+                            <button className="edit-button" onClick={() => setIsEditing(true)}>
+                                Edit
+                            </button>
 
-                        <button className="edit-button" onClick={() => setIsEditing(true)}>
-                            Edit
-                        </button>
+                            {/* Icon only, so aria-label gives screen readers a name; title shows on hover */}
+                            <button
+                                className="delete-button"
+                                aria-label={`Delete "${task.title}"`}
+                                title="Delete"
+                                onClick={() => {
+                                    if(window.confirm(`Delete "${task.title}"?`)){
+                                        onDelete(task.id)
+                                    }
+                                }}
+                            >
+                                <TrashIcon />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

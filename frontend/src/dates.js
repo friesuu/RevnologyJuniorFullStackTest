@@ -10,5 +10,5 @@ export function todayString()
 
 export function isOverdue(task)
 {
-    return task.dueDate !== null && task.status !== 'done' && task.dueDate < todayString();
+    return task.dueDate !== null && task.status !== 'DONE' && task.dueDate < todayString();
 }

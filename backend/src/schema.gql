@@ -8,6 +8,7 @@ type Task {
   description: String
   status: TaskStatus!
   dueDate: String
+  position: Int!
   createdAt: DateTime!
 }
 
@@ -29,6 +30,7 @@ type Query {
 type Mutation {
   createTask(input: CreateTaskInput!): Task!
   updateTask(id: Int!, input: UpdateTaskInput!): Task!
+  moveTask(id: Int!, input: MoveTaskInput!): Task!
   deleteTask(id: Int!): Boolean!
 }
 
@@ -44,4 +46,9 @@ input UpdateTaskInput {
   description: String
   status: TaskStatus
   dueDate: String
+}
+
+input MoveTaskInput {
+  status: TaskStatus!
+  position: Int!
 }

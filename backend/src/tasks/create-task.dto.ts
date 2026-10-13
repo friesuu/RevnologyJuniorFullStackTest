@@ -35,8 +35,6 @@ export class CreateTaskDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'dueDate must be in YYYY-MM-DD format',
   })
-
-  @Field(() => String, {nullable: true})
   @IsDateString({ strict: true })
   dueDate?: string;
 }

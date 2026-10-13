@@ -26,6 +26,12 @@ const UPDATE_TASK = `
   }
 `;
 
+const MOVE_TASK = `
+  mutation MoveTask($id: Int!, $input: MoveTaskInput!) {
+    moveTask(id: $id, input: $input) { id status position }
+  }
+`;
+
 const DELETE_TASK = `
   mutation DeleteTask($id: Int!) {
     deleteTask(id: $id)
@@ -68,6 +74,15 @@ describe('Tasks GraphQL API (e2e)', () => {
     const res = await gql(CREATE_TASK, { input }).expect(200);
     expect(res.body.errors).toBeUndefined();
     return res.body.data.createTask;
+  };
+
+  // Titles of one column, in the order the board would show them
+  const titlesIn = async (status: string) => {
+    const res = await gql(TASKS).expect(200);
+    expect(res.body.errors).toBeUndefined();
+    return res.body.data.tasks
+      .filter((t: { status: string }) => t.status === status)
+      .map((t: { title: string }) => t.title);
   };
 
   // Error shapes (see step 2e):
@@ -222,6 +237,98 @@ describe('Tasks GraphQL API (e2e)', () => {
 
       expect(res.body.data).toBeNull();
       expect(res.body.errors[0].message).toContain('cannot be null');
+    });
+  });
+
+  describe('moveTask', () => {
+    it('moves a task up inside its column', async () => {
+      await createTask({ title: 'A' });
+      await createTask({ title: 'B' });
+      const c = await createTask({ title: 'C' });
+
+      const res = await gql(MOVE_TASK, {
+        id: c.id,
+        input: { status: 'TODO', position: 0 },
+      }).expect(200);
+
+      expect(res.body.errors).toBeUndefined();
+      expect(await titlesIn('TODO')).toEqual(['C', 'A', 'B']);
+    });
+
+    it('moves a task down inside its column', async () => {
+      const a = await createTask({ title: 'A' });
+      await createTask({ title: 'B' });
+      await createTask({ title: 'C' });
+
+      await gql(MOVE_TASK, { id: a.id, input: { status: 'TODO', position: 2 } }).expect(200);
+
+      expect(await titlesIn('TODO')).toEqual(['B', 'C', 'A']);
+    });
+
+    it('moves a task between two tasks of another column', async () => {
+      const a = await createTask({ title: 'A' });
+      await createTask({ title: 'B' });
+      await createTask({ title: 'X', status: 'DONE' });
+      await createTask({ title: 'Y', status: 'DONE' });
+
+      const res = await gql(MOVE_TASK, {
+        id: a.id,
+        input: { status: 'DONE', position: 1 },
+      }).expect(200);
+
+      expect(res.body.data.moveTask.status).toBe('DONE');
+      expect(await titlesIn('DONE')).toEqual(['X', 'A', 'Y']);
+      expect(await titlesIn('TODO')).toEqual(['B']);
+    });
+
+    it('puts a task at the bottom when the position is past the end', async () => {
+      const a = await createTask({ title: 'A' });
+      await createTask({ title: 'X', status: 'DONE' });
+
+      await gql(MOVE_TASK, { id: a.id, input: { status: 'DONE', position: 99 } }).expect(200);
+
+      expect(await titlesIn('DONE')).toEqual(['X', 'A']);
+    });
+
+    it('adds new tasks at the bottom of their column', async () => {
+      await createTask({ title: 'A' });
+      const b = await createTask({ title: 'B' });
+      await gql(MOVE_TASK, { id: b.id, input: { status: 'TODO', position: 0 } }).expect(200);
+
+      await createTask({ title: 'C' });
+
+      expect(await titlesIn('TODO')).toEqual(['B', 'A', 'C']);
+    });
+
+    it('puts a task at the bottom of the new column when its status is changed', async () => {
+      await createTask({ title: 'X', status: 'DONE' });
+      const a = await createTask({ title: 'A' });
+
+      await gql(UPDATE_TASK, { id: a.id, input: { status: 'DONE' } }).expect(200);
+
+      expect(await titlesIn('DONE')).toEqual(['X', 'A']);
+    });
+
+    it('rejects a negative position', async () => {
+      const a = await createTask({ title: 'A' });
+
+      const res = await gql(MOVE_TASK, {
+        id: a.id,
+        input: { status: 'TODO', position: -1 },
+      }).expect(200);
+
+      expect(res.body.data).toBeNull();
+      expect(res.body.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+
+    it('returns an error for a task that doesnt exist', async () => {
+      const res = await gql(MOVE_TASK, {
+        id: 999999,
+        input: { status: 'TODO', position: 0 },
+      }).expect(200);
+
+      expect(res.body.data).toBeNull();
+      expect(res.body.errors[0].message).toContain('Task 999999 not found');
     });
   });
 

@@ -1,9 +1,10 @@
 import './App.css';
 import { useState, useEffect } from 'react';
-import { getTasks, createTask, updateTask, deleteTask } from './api';
+import { getTasks, createTask, updateTask, moveTask, deleteTask } from './api';
 import Column from './components/Column';
 import TaskForm from './components/TaskFrom';
 import { STATUSES } from './statuses';
+import { moveInList } from './reorder';
 import { DragDropContext} from '@hello-pangea/dnd';
 
 function App()
@@ -22,23 +23,32 @@ function App()
     setIsModalOpen(false);
   };
 
-  // Optimistic: move the card on screen first, then save. If the save fails, put it back.
-  const handleStatusChange = async (id, status) => {
-    const previous = tasks.find((t) => t.id === id);
-    if (!previous || previous.status === status) return;
+  // Optimistic: move the card on screen first, then save. If the save fails, undo.
+  const handleMove = async (id, status, index) => {
+    const previous = tasks;
 
     setError(null);
-    setTasks((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+    setTasks((prev) => moveInList(prev, id, status, index));
 
     try{
-      const updated = await updateTask(id, { status })
-      setTasks((prev) => prev.map((b) => (b.id === id? updated : b)));
+      const moved = await moveTask(id, status, index);
+      setTasks((prev) => prev.map((b) => (b.id === id ? moved : b)));
     }
     catch(err){
-      // Only undo if the card still has the status we set (it wasn't moved again meanwhile)
-      setTasks((prev) => prev.map((b) => (b.id === id && b.status === status ? { ...b, status: previous.status } : b)));
-      setError(err.message)
+      setError(err.message);
+      try{
+        setTasks(await getTasks()); // the server knows the real order
+      }
+      catch{
+        setTasks(previous); // server unreachable: put the board back as it was
+      }
     }
+  };
+
+  // The dropdown sends the task to the bottom of the chosen column
+  const handleStatusChange = (id, status) => {
+    const bottom = tasks.filter((t) => t.status === status && t.id !== id).length;
+    handleMove(id, status, bottom);
   };
 
   const handleDelete = async (id) => {
@@ -59,9 +69,9 @@ function App()
 
   const handleDragEnd = ({ source, destination, draggableId }) => {
     if (!destination) return; // dropped outside a column, or Esc pressed
-    if (destination.droppableId === source.droppableId) return; // reordering comes later
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return; // dropped where it was
 
-    handleStatusChange(Number(draggableId), destination.droppableId);
+    handleMove(Number(draggableId), destination.droppableId, destination.index);
   }
 
   return(

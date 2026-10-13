@@ -3,6 +3,7 @@ import { TasksService } from "./tasks.service";
 import { Task } from "./task.entity";
 import { CreateTaskDto } from "./create-task.dto";
 import { UpdateTaskDto } from "./update-task.dto";
+import { MoveTaskDto } from "./move-task.dto";
 
 @Resolver(() => Task)
 export class TaskResolver
@@ -25,6 +26,15 @@ export class TaskResolver
         @Args('input') input: UpdateTaskDto
     ): Promise<Task>{
         return this.tasksService.update(id, input);
+    }
+
+    // Drag and drop: put a task at a position in a column (same or different one)
+    @Mutation(() => Task)
+    moveTask(
+        @Args('id', { type: () => Int}) id: number,
+        @Args('input') input: MoveTaskDto
+    ): Promise<Task>{
+        return this.tasksService.move(id, input);
     }
 
     @Mutation(() => Boolean)
