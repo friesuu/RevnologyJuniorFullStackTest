@@ -1,16 +1,18 @@
 # Task Board
-A simple task board. You can add tasks, move them between TO DO, IN PROGRESS and DONE, edit, delete, and see which ones are overdue.
+A simple task board. You can add tasks, drag them between TO DO, IN PROGRESS and DONE, put them in any order, edit, delete, and see which ones are overdue.
 
 - Frontend: React
 - Backend: NestJS
+- API: GraphQL (Apollo Server)
 - Database: PostgreSQL
 
 ## What it does
 - Add a task (title, description, due date)
-- Change a task's status
-- Edit or delete a task
+- Drag and drop a task to another column, or to a different place in the same column
+- Change a task's status with the dropdown (it goes to the bottom of the new column)
+- Edit a task, or delete it with the bin icon
 - Late tasks are shown in red with an "Overdue" label
-- Tasks are saved, so they're still there after a restart
+- Tasks and their order are saved, so they're still there after a restart
 
 ## How to run it
 You need **Node.js** and **PostgreSQL** installed.
@@ -49,35 +51,51 @@ cd into the `backend` folder in terminal and run:
 
 npm run test:e2e
 
-The tests use the `taskboard_test` database, so they don't touch your real tasks.
+The tests are in `test/graphql.e2e-spec.ts`. They send real GraphQL requests to the API and check the answers. They use the `taskboard_test` database, so they don't touch your real tasks.
 
 ## The API
-| Method | URL | What it does |
-|--------|-----|--------------|
-| GET | `/tasks` | Get all tasks |
-| POST | `/tasks` | Add a task |
-| PATCH | `/tasks/:id` | Change a task |
-| DELETE | `/tasks/:id` | Delete a task |
+Everything goes to one URL: `POST http://localhost:3000/graphql`. You can try it in the browser by opening that URL (it opens GraphiQL).
 
-If something is wrong, the API sends back an error. For example:
-- An empty title or a wrong status gives **400 Bad Request**
-- A task that doesn't exist gives **404 Not Found**
+| Operation | Type | What it does |
+|-----------|------|--------------|
+| `tasks` | Query | Get all tasks, in board order |
+| `createTask(input)` | Mutation | Add a task (it goes to the bottom of its column) |
+| `updateTask(id, input)` | Mutation | Change a task's title, description, due date or status |
+| `moveTask(id, input)` | Mutation | Put a task at a position in a column (used by drag and drop) |
+| `deleteTask(id)` | Mutation | Delete a task |
 
-I didn't add the `?status=` filter from the suggested API, because the page gets all tasks once and puts them into columns itself.
+Example:
+```graphql
+mutation {
+  createTask(input: { title: "Buy milk", dueDate: "2026-10-20" }) { id title status }
+}
+```
+
+Status values are `TODO`, `IN_PROGRESS` and `DONE`. The full schema is in `backend/src/schema.gql` (it's made automatically from the code).
+
+If something is wrong, the answer has an `errors` list instead of `data`. Unlike REST, this often still comes with **HTTP 200**:
+- A wrong status, an unknown field or a wrong type (like `id: "abc"`) is rejected by GraphQL itself, with **HTTP 400**
+- An empty title, a title over 100 characters or a date that doesn't exist is rejected by the validation, with the reason in `errors[0].extensions.originalError.message`
+- A task that doesn't exist gives `Task <id> not found` in `errors[0].message`
+
+I didn't add a status filter to the `tasks` query, because the page gets all tasks once and puts them into columns itself.
 
 ## Decisions I made
 - **I used the company's tools** (React, NestJS, PostgreSQL) even though they were new to me, so it took longer.
 - **The database table is made automatically** when the app starts. This is easy for a small project, but a real app should use migrations.
 - **The API checks all input** (title not empty, max 100 characters, valid status, real date). The form checks some things too, but the API is the real safety net.
 - **"Overdue" is worked out in the browser**, because "today" depends on where the user is. A task due today is not overdue yet.
-- **The page only updates after the save works.** If it fails, an error is shown and nothing changes.
+- **Adding, editing and deleting only update the page after the save works.** If it fails, an error is shown and nothing changes.
+- **Moving a card updates the page straight away**, then saves. Drag and drop has to feel instant, otherwise the card jumps back and forth. If the save fails, the board goes back to the real order from the server and an error is shown.
+- **The order is stored as a `position` number** for each task in its column. Moving a card renumbers its column inside a database transaction, so the order can never be half-saved.
+- **I switched the API from REST to GraphQL** because my supervisor asked me to learn it. For an app this small REST would have been enough, but it was a good way to learn GraphQL on code I already understood. I built GraphQL next to REST first, wrote tests for it, switched the frontend, and only then removed REST.
 
 ## What I'd do with more time
 - Search and filter tasks
-- Drag and drop cards between columns
+- Login, so each person only sees their own tasks (in progress)
 
 ## AI tools I used
-- **Claude:** helped me learn React and NestJS, gave me hints if what I wrote doesn't work, explained errors, reviewed my code so I could fix my bugs, helped with git commands, changed my CSS colours into variables, and helped me write this README.
+- **Claude:** helped me learn React and NestJS, gave me hints if what I wrote doesn't work, explained errors, reviewed my code so I could fix my bugs, helped with git commands, changed my CSS colours into variables, and helped me write this README. For drag and drop and GraphQL, Claude guided me step by step while I wrote the code, and wrote some parts for me: finishing drag and drop, the GraphQL tests, the rest of `api.js`, reordering inside a column, and the delete icon. It also updated this README for the GraphQL changes.
 - **Google Search AI:** is used mostly to know what't the syntax for specific functions and how it is written in javascript. I also used this to generate the color theme codes for vscode's tokyo night
 
 ## Time spent
