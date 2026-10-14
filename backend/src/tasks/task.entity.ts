@@ -3,9 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  JoinColumn,
+  ManyToOne,
 } from 'typeorm';
 import { TaskStatus } from './tasks-status.enum';
 import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { User } from '../users/user.entity';
 
 @ObjectType()
 @Entity('tasks')
@@ -42,4 +45,11 @@ export class Task {
   @Field()
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
+
+  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' }) // Many tasks belong to one user
+  @JoinColumn({ name: 'owner_id' })
+  owner: User;
+
+  @Column({ name: 'owner_id', type: 'int', nullable: false })
+  ownerId: number;
 }
