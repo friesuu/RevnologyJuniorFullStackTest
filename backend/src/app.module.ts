@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
+import type { Request, Response } from 'express';
 
 @Module({
   imports: [
@@ -12,6 +14,7 @@ import { join } from 'path';
       isGlobal: true,
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
+      context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
     }),
@@ -30,6 +33,7 @@ import { join } from 'path';
       }),
     }),
     TasksModule,
+    AuthModule
   ],
 })
 export class AppModule {}

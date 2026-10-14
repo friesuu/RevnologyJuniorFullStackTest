@@ -4,7 +4,10 @@ import { Task } from "./task.entity";
 import { CreateTaskDto } from "./create-task.dto";
 import { UpdateTaskDto } from "./update-task.dto";
 import { MoveTaskDto } from "./move-task.dto";
+import { GqlAuthGuard } from "../auth/gql-auth.guard";
+import { UseGuards } from "@nestjs/common";
 
+@UseGuards(GqlAuthGuard) // Uses the gql auth guard
 @Resolver(() => Task)
 export class TaskResolver
 {

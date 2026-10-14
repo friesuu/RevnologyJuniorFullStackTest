@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 
 export function setupApp(app: INestApplication): void {
   app.enableCors({ origin: 'http://localhost:5173' });
@@ -9,4 +10,5 @@ export function setupApp(app: INestApplication): void {
       transform: true,
     }),
   );
+  app.use(cookieParser());
 }

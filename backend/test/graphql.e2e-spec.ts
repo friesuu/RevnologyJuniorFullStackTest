@@ -6,6 +6,28 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { AppModule } from '../src/app.module'; // ../ = go up one folder
 import { setupApp } from '../src/app.setup';
 import { Task } from '../src/tasks/task.entity';
+import { User } from '../src/users/user.entity';
+
+// The account every test runs as. Deleted and re-registered at the start of each run.
+const TEST_USER = { email: 'e2e@test.com', password: 'e2e-password' };
+
+const REGISTER = `
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) { id }
+  }
+`;
+
+const LOGIN = `
+  mutation Login($input: LoginInput!) {
+    login(input: $input) { id }
+  }
+`;
+
+const ME = `
+  query {
+    me { id email }
+  }
+`;
 
 // Each operation is written once and reused. $name = a variable sent separately.
 const TASKS = `
@@ -41,8 +63,10 @@ const DELETE_TASK = `
 describe('Tasks GraphQL API (e2e)', () => {
   let app: INestApplication; // set in beforeAll, used by every test
   let tasksRepository: Repository<Task>;
+  let usersRepository: Repository<User>;
+  let cookie: string[] = []; // the login cookie, sent with every request by gql()
 
-  // Runs ONCE before all tests: build and start the app
+  // Runs ONCE before all tests: build and start the app, then log in
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -53,6 +77,15 @@ describe('Tasks GraphQL API (e2e)', () => {
     await app.init();
 
     tasksRepository = app.get(getRepositoryToken(Task));
+    usersRepository = app.get(getRepositoryToken(User));
+
+    // Fresh test account: remove the one from the last run, register, log in, keep the cookie
+    await usersRepository.delete({ email: TEST_USER.email });
+    await gql(REGISTER, { input: TEST_USER }).expect(200);
+    const login = await gql(LOGIN, { input: TEST_USER }).expect(200);
+    expect(login.body.errors).toBeUndefined(); // fails loudly here if logging in is broken
+    const setCookie = login.headers['set-cookie']; // typed as one string, but can be a list
+    cookie = Array.isArray(setCookie) ? setCookie : [setCookie];
   });
 
   // Runs ONCE after all tests: shut the app down
@@ -65,8 +98,15 @@ describe('Tasks GraphQL API (e2e)', () => {
     await tasksRepository.clear();
   });
 
-  // Every GraphQL call is POST /graphql with { query, variables }
-  const gql = (query: string, variables?: Record<string, unknown>) =>
+  // Every GraphQL call is POST /graphql with { query, variables }, plus the login cookie once we have it
+  const gql = (query: string, variables?: Record<string, unknown>) => {
+    const req = request(app.getHttpServer()).post('/graphql');
+    if (cookie.length) req.set('Cookie', cookie);
+    return req.send({ query, variables });
+  };
+
+  // The same call with NO cookie, as a logged-out visitor
+  const gqlLoggedOut = (query: string, variables?: Record<string, unknown>) =>
     request(app.getHttpServer()).post('/graphql').send({ query, variables });
 
   // Setup helper for tests that need an existing task. Fails loudly if creating it fails.
@@ -89,6 +129,34 @@ describe('Tasks GraphQL API (e2e)', () => {
   //   rejected by the schema      -> HTTP 400, extensions.code BAD_USER_INPUT
   //   rejected by ValidationPipe  -> HTTP 200, data null, messages in extensions.originalError.message
   //   thrown by the service       -> HTTP 200, data null, message in errors[0].message
+
+  describe('login', () => {
+    it('blocks task operations without a login cookie', async () => {
+      const read = await gqlLoggedOut(TASKS).expect(200);
+      expect(read.body.errors[0].extensions.code).toBe('UNAUTHENTICATED');
+
+      const write = await gqlLoggedOut(CREATE_TASK, { input: { title: 'Sneaky' } }).expect(200);
+      expect(write.body.errors[0].extensions.code).toBe('UNAUTHENTICATED');
+      expect(await tasksRepository.count()).toBe(0); // and nothing was saved
+    });
+
+    it('rejects a made-up token', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/graphql')
+        .set('Cookie', 'token=not-a-real-token')
+        .send({ query: TASKS })
+        .expect(200);
+
+      expect(res.body.errors[0].extensions.code).toBe('UNAUTHENTICATED');
+    });
+
+    it('me returns the logged-in user', async () => {
+      const res = await gql(ME).expect(200);
+
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.me.email).toBe(TEST_USER.email);
+    });
+  });
 
   describe('createTask', () => {
     it('creates a task and trims it', async () => {

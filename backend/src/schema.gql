@@ -23,8 +23,14 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type User {
+  id: Int!
+  email: String!
+}
+
 type Query {
   tasks: [Task!]!
+  me: User!
 }
 
 type Mutation {
@@ -32,6 +38,8 @@ type Mutation {
   updateTask(id: Int!, input: UpdateTaskInput!): Task!
   moveTask(id: Int!, input: MoveTaskInput!): Task!
   deleteTask(id: Int!): Boolean!
+  register(input: RegisterInput!): User!
+  login(input: LoginInput!): User!
 }
 
 input CreateTaskInput {
@@ -51,4 +59,14 @@ input UpdateTaskInput {
 input MoveTaskInput {
   status: TaskStatus!
   position: Int!
+}
+
+input RegisterInput {
+  email: String!
+  password: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
 }
