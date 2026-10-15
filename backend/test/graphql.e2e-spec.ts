@@ -10,6 +10,8 @@ import { User } from '../src/users/user.entity';
 
 // The account every test runs as. Deleted and re-registered at the start of each run.
 const TEST_USER = { email: 'e2e@test.com', password: 'e2e-password' };
+// A second account that tries to reach TEST_USER's tasks (ownership tests)
+const OTHER_USER = { email: 'e2e-other@test.com', password: 'e2e-password' };
 
 const REGISTER = `
   mutation Register($input: RegisterInput!) {
@@ -64,9 +66,10 @@ describe('Tasks GraphQL API (e2e)', () => {
   let app: INestApplication; // set in beforeAll, used by every test
   let tasksRepository: Repository<Task>;
   let usersRepository: Repository<User>;
-  let cookie: string[] = []; // the login cookie, sent with every request by gql()
+  let cookie: string[] = []; // TEST_USER's login cookie, sent with every request by gql()
+  let otherCookie: string[] = []; // OTHER_USER's login cookie, used by the ownership tests
 
-  // Runs ONCE before all tests: build and start the app, then log in
+  // Runs ONCE before all tests: build and start the app, then log both users in
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -79,13 +82,8 @@ describe('Tasks GraphQL API (e2e)', () => {
     tasksRepository = app.get(getRepositoryToken(Task));
     usersRepository = app.get(getRepositoryToken(User));
 
-    // Fresh test account: remove the one from the last run, register, log in, keep the cookie
-    await usersRepository.delete({ email: TEST_USER.email });
-    await gql(REGISTER, { input: TEST_USER }).expect(200);
-    const login = await gql(LOGIN, { input: TEST_USER }).expect(200);
-    expect(login.body.errors).toBeUndefined(); // fails loudly here if logging in is broken
-    const setCookie = login.headers['set-cookie']; // typed as one string, but can be a list
-    cookie = Array.isArray(setCookie) ? setCookie : [setCookie];
+    cookie = await registerAndLogIn(TEST_USER);
+    otherCookie = await registerAndLogIn(OTHER_USER);
   });
 
   // Runs ONCE after all tests: shut the app down
@@ -98,16 +96,31 @@ describe('Tasks GraphQL API (e2e)', () => {
     await tasksRepository.clear();
   });
 
-  // Every GraphQL call is POST /graphql with { query, variables }, plus the login cookie once we have it
-  const gql = (query: string, variables?: Record<string, unknown>) => {
-    const req = request(app.getHttpServer()).post('/graphql');
-    if (cookie.length) req.set('Cookie', cookie);
-    return req.send({ query, variables });
-  };
+  // Every GraphQL call is POST /graphql with { query, variables }, sent as whoever owns `who`
+  const gqlAs = (who: string[], query: string, variables?: Record<string, unknown>) =>
+    request(app.getHttpServer()).post('/graphql').set('Cookie', who).send({ query, variables });
 
-  // The same call with NO cookie, as a logged-out visitor
+  // As TEST_USER (most tests)
+  const gql = (query: string, variables?: Record<string, unknown>) => gqlAs(cookie, query, variables);
+
+  // As OTHER_USER (ownership tests)
+  const gqlAsOther = (query: string, variables?: Record<string, unknown>) =>
+    gqlAs(otherCookie, query, variables);
+
+  // With NO cookie, as a logged-out visitor
   const gqlLoggedOut = (query: string, variables?: Record<string, unknown>) =>
     request(app.getHttpServer()).post('/graphql').send({ query, variables });
+
+  // Fresh account: remove the one from the last run (its tasks go too: ON DELETE CASCADE),
+  // register, log in, and return the login cookie. Fails loudly here if logging in is broken.
+  const registerAndLogIn = async (user: { email: string; password: string }) => {
+    await usersRepository.delete({ email: user.email });
+    await gqlLoggedOut(REGISTER, { input: user }).expect(200);
+    const login = await gqlLoggedOut(LOGIN, { input: user }).expect(200);
+    expect(login.body.errors).toBeUndefined();
+    const setCookie = login.headers['set-cookie']; // typed as one string, but can be a list
+    return Array.isArray(setCookie) ? setCookie : [setCookie];
+  };
 
   // Setup helper for tests that need an existing task. Fails loudly if creating it fails.
   const createTask = async (input: Record<string, unknown>) => {
@@ -155,6 +168,108 @@ describe('Tasks GraphQL API (e2e)', () => {
 
       expect(res.body.errors).toBeUndefined();
       expect(res.body.data.me.email).toBe(TEST_USER.email);
+    });
+
+    // supertest isn't a browser and won't delete the cookie itself, so we check the instruction
+    // the server sends: "token is now empty and expired in 1970". The saved test cookie keeps
+    // working afterwards, because a JWT can't be cancelled: logout only removes it from the browser.
+    it('logout tells the browser to delete the cookie', async () => {
+      const res = await gql(`mutation { logout }`).expect(200);
+
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.logout).toBe(true);
+
+      const setCookie = String(res.headers['set-cookie']);
+      expect(setCookie).toContain('token=;');
+      expect(setCookie).toContain('Expires=Thu, 01 Jan 1970');
+      expect(setCookie).toContain('HttpOnly'); // same options as login, or browsers won't clear it
+    });
+
+    it('logout also works when not logged in', async () => {
+      const res = await gqlLoggedOut(`mutation { logout }`).expect(200);
+
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.logout).toBe(true);
+    });
+  });
+
+  // OTHER_USER tries every way to reach TEST_USER's tasks. Each attempt must look exactly like
+  // "this task doesn't exist", so an attacker can't even learn that the task is there.
+  describe('ownership (another user)', () => {
+    it('does not see my tasks', async () => {
+      await createTask({ title: 'Mine' });
+
+      const res = await gqlAsOther(TASKS).expect(200);
+
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.tasks).toEqual([]);
+    });
+
+    it('cannot update my task', async () => {
+      const mine = await createTask({ title: 'Mine' });
+
+      const res = await gqlAsOther(UPDATE_TASK, {
+        id: mine.id,
+        input: { title: 'Hacked' },
+      }).expect(200);
+
+      expect(res.body.data).toBeNull();
+      expect(res.body.errors[0].message).toBe(`Task ${mine.id} not found`);
+      expect(await titlesIn('TODO')).toEqual(['Mine']); // unchanged
+    });
+
+    it('cannot move my task', async () => {
+      const mine = await createTask({ title: 'Mine' });
+
+      const res = await gqlAsOther(MOVE_TASK, {
+        id: mine.id,
+        input: { status: 'DONE', position: 0 },
+      }).expect(200);
+
+      expect(res.body.errors[0].message).toBe(`Task ${mine.id} not found`);
+      expect(await titlesIn('TODO')).toEqual(['Mine']); // still in its column
+      expect(await titlesIn('DONE')).toEqual([]);
+    });
+
+    it('cannot delete my task', async () => {
+      const mine = await createTask({ title: 'Mine' });
+
+      const res = await gqlAsOther(DELETE_TASK, { id: mine.id }).expect(200);
+
+      expect(res.body.errors[0].message).toBe(`Task ${mine.id} not found`);
+      expect(await titlesIn('TODO')).toEqual(['Mine']); // still there
+    });
+
+    it('gets the same kind of error for my task as for a task that does not exist', async () => {
+      const mine = await createTask({ title: 'Mine' });
+
+      const forMine = await gqlAsOther(DELETE_TASK, { id: mine.id }).expect(200);
+      const forNothing = await gqlAsOther(DELETE_TASK, { id: 999999 }).expect(200);
+
+      expect(forMine.body.errors[0].extensions.code).toBe(forNothing.body.errors[0].extensions.code);
+      expect(forMine.body.errors[0].message).toBe(`Task ${mine.id} not found`);
+      expect(forNothing.body.errors[0].message).toBe('Task 999999 not found');
+    });
+
+    it('does not show their tasks in my list', async () => {
+      await gqlAsOther(CREATE_TASK, { input: { title: 'Theirs' } }).expect(200);
+
+      expect(await titlesIn('TODO')).toEqual([]);
+    });
+
+    it('keeps separate column order for each user', async () => {
+      await createTask({ title: 'A' });
+      const b = await createTask({ title: 'B' });
+      const theirs = await gqlAsOther(CREATE_TASK, { input: { title: 'Theirs' } }).expect(200);
+      const theirsId = theirs.body.data.createTask.id;
+
+      // Their first task is at the top of THEIR column, even though I already have two
+      expect((await tasksRepository.findOneByOrFail({ id: theirsId })).position).toBe(0);
+
+      // Reordering my column doesn't renumber theirs
+      await gql(MOVE_TASK, { id: b.id, input: { status: 'TODO', position: 0 } }).expect(200);
+      expect(await titlesIn('TODO')).toEqual(['B', 'A']);
+      expect((await tasksRepository.findOneByOrFail({ id: theirsId })).position).toBe(0);
     });
   });
 

@@ -40,6 +40,7 @@ type Mutation {
   deleteTask(id: Int!): Boolean!
   register(input: RegisterInput!): User!
   login(input: LoginInput!): User!
+  logout: Boolean!
 }
 
 input CreateTaskInput {

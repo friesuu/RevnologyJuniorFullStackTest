@@ -8,6 +8,12 @@ import { UseGuards } from "@nestjs/common";
 import { GqlAuthGuard } from "./gql-auth.guard";
 import { CurrentUser } from "./current-user.decorator";
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+};
+
 @Resolver(() => User)
 export class AuthResolver
 {
@@ -23,9 +29,7 @@ export class AuthResolver
     async login(@Args('input') input: LoginDto, @Context() ctx: { res: Response }): Promise<User> {
         const { user, token } = await this.authService.login(input);
         ctx.res.cookie('token', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
+            ...COOKIE_OPTIONS,
             maxAge: 24 * 60 * 60 * 1000,
         });
         return user;
@@ -35,5 +39,11 @@ export class AuthResolver
         @UseGuards(GqlAuthGuard)
         me(@CurrentUser() user: User): User { // Returns current user
         return user;
+    }
+
+    @Mutation(() => Boolean)
+        logout(@Context() ctx: { res: Response }): boolean {
+        ctx.res.clearCookie('token', COOKIE_OPTIONS);
+        return true;
     }
 }
