@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 
 export function setupApp(app: INestApplication): void {
-  app.enableCors({ origin: 'http://localhost:5173' });
+  app.enableCors({ origin: 'http://localhost:5173', credentials: true });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

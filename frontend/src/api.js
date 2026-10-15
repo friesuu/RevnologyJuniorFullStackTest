@@ -15,10 +15,12 @@ function getErrorMessage(error)
 }
 
 async function graphqlRequest(query, variables) {
-  const response = await fetch(GRAPHQL_URL, {
+  const response = await fetch(GRAPHQL_URL, { // Fetch by default sends GQL requests into the same origin
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),
+    credentials: 'include' // Sends them to localhost3000 too
+    // without credentials, the browsers leaves the cookie out
   });
 
   const body = await response.json();
